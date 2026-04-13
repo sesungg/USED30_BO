@@ -1,0 +1,30 @@
+/* Custom utilities not covered by Bootstrap 5 */
+
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Table row hover smooth */
+.table-hover > tbody > tr {
+  transition: background-color 0.1s;
+}
+
+/* Sidebar nav link hover */
+.nav-link:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Card subtle shadow */
+.card.shadow-sm {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
