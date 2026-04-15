@@ -26,6 +26,10 @@ export default function OrderDetailPage() {
   const settlement = mockSettlements.find(s => s.orderId === id);
 
   const PAYMENT_LABEL: Record<string, string> = { card: '카드', balance: '잔액', transfer: '계좌이체' };
+  const appliedCoupon = order.appliedCoupon;
+  const paymentBaseAmount = appliedCoupon
+    ? order.payment.amount + appliedCoupon.discountAmount
+    : order.payment.amount;
 
   function saveShipping() {
     if (!carrier || !trackingNo) { showToast('택배사와 운송장 번호를 입력해주세요.', 'warning'); return; }
@@ -67,7 +71,20 @@ export default function OrderDetailPage() {
             <div className="card-header bg-white fw-semibold">주문 정보</div>
             <div className="card-body">
               <div className="row g-2 small">
-                <div className="col-4 text-muted">결제 금액</div>
+                <div className="col-4 text-muted">상품 금액</div>
+                <div className="col-8">₩{paymentBaseAmount.toLocaleString()}</div>
+                {appliedCoupon && <>
+                  <div className="col-4 text-muted">적용 쿠폰</div>
+                  <div className="col-8">
+                    <Link to={`/coupons/${appliedCoupon.couponId}`} className="text-decoration-none fw-medium text-primary">
+                      {appliedCoupon.code}
+                    </Link>
+                    <div className="text-muted mt-1" style={{ fontSize: 12 }}>{appliedCoupon.name}</div>
+                  </div>
+                  <div className="col-4 text-muted">쿠폰 할인</div>
+                  <div className="col-8 text-danger">-₩{appliedCoupon.discountAmount.toLocaleString()}</div>
+                </>}
+                <div className="col-4 text-muted">최종 결제 금액</div>
                 <div className="col-8 fw-bold text-primary">₩{order.payment.amount.toLocaleString()}</div>
                 <div className="col-4 text-muted">결제 수단</div>
                 <div className="col-8">{PAYMENT_LABEL[order.payment.method] ?? order.payment.method}</div>
