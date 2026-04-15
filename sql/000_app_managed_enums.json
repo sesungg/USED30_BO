@@ -1,0 +1,227 @@
+{
+  "version": 1,
+  "description": "Application-managed enum catalog for the used30_bo schema. PostgreSQL enum types are intentionally not used.",
+  "applyOrder": [
+    "010_user_member_schema.sql",
+    "020_admin_rbac_and_auth_schema.sql",
+    "030_commerce_core_schema.sql",
+    "040_admin_ops_schema.sql"
+  ],
+  "enums": {
+    "user_role": {
+      "values": ["user", "admin", "inspector"],
+      "columns": ["users.role"],
+      "defaults": {
+        "users.role": "user"
+      }
+    },
+    "oauth_provider": {
+      "values": ["kakao", "naver", "google", "apple"],
+      "columns": ["oauth_accounts.provider"]
+    },
+    "push_platform": {
+      "values": ["ios", "android", "web"],
+      "columns": ["user_push_tokens.platform", "push_notification_logs.platform"]
+    },
+    "terms_type": {
+      "values": ["service", "privacy", "marketing", "location"],
+      "columns": ["terms_of_service.type"]
+    },
+    "ban_reason": {
+      "values": ["fraud", "fake_grade", "abuse", "payment_fraud", "other"],
+      "columns": ["banned_users.reason"]
+    },
+    "admin_role_code": {
+      "values": [
+        "super_admin",
+        "admin",
+        "inspector",
+        "settlement_manager",
+        "cs_agent",
+        "product_reviewer",
+        "store_manager",
+        "readonly_analyst"
+      ],
+      "columns": [
+        "admin_roles.code",
+        "admin_role_permissions.role_code",
+        "admin_user_roles.role_code"
+      ]
+    },
+    "admin_account_status": {
+      "values": ["active", "suspended", "disabled"],
+      "columns": ["admin_accounts.status"],
+      "defaults": {
+        "admin_accounts.status": "active"
+      }
+    },
+    "admin_login_event": {
+      "values": ["login_success", "login_failure", "logout", "session_revoked"],
+      "columns": ["admin_login_logs.event"]
+    },
+    "lp_condition": {
+      "values": ["M", "NM", "VG_PLUS", "VG", "G_PLUS", "G", "F", "P"],
+      "columns": [
+        "products.media_condition",
+        "products.sleeve_condition",
+        "inspections.actual_media_cond",
+        "inspections.actual_sleeve_cond"
+      ]
+    },
+    "product_status": {
+      "values": ["on_sale", "reserved", "trading", "sold_out", "suspended", "deleted"],
+      "columns": ["products.status"],
+      "defaults": {
+        "products.status": "on_sale"
+      }
+    },
+    "order_status": {
+      "values": [
+        "payment_pending",
+        "paid",
+        "seller_shipping",
+        "center_arrived",
+        "inspecting",
+        "inspection_passed",
+        "inspection_failed",
+        "buyer_consent_pending",
+        "buyer_shipping",
+        "delivered",
+        "completed",
+        "cancelled"
+      ],
+      "columns": ["orders.status"],
+      "defaults": {
+        "orders.status": "payment_pending"
+      }
+    },
+    "inspection_status": {
+      "values": ["pending", "in_progress", "passed", "failed", "grade_mismatch"],
+      "columns": ["inspections.status"],
+      "defaults": {
+        "inspections.status": "pending"
+      }
+    },
+    "settlement_status": {
+      "values": ["scheduled", "processing", "completed", "failed", "held"],
+      "columns": ["settlements.status"],
+      "defaults": {
+        "settlements.status": "scheduled"
+      }
+    },
+    "announcement_category": {
+      "values": ["notice", "event", "update", "inspection", "maintenance"],
+      "columns": ["announcements.category"],
+      "defaults": {
+        "announcements.category": "notice"
+      }
+    },
+    "ticket_category": {
+      "values": ["order", "inspection", "payment", "return", "account", "other"],
+      "columns": ["support_tickets.category"]
+    },
+    "ticket_status": {
+      "values": ["open", "in_progress", "resolved", "closed"],
+      "columns": ["support_tickets.status"],
+      "defaults": {
+        "support_tickets.status": "open"
+      }
+    },
+    "admin_action": {
+      "values": [
+        "user_ban",
+        "user_unban",
+        "user_update",
+        "penalty_issue",
+        "penalty_revoke",
+        "admin_role_assign",
+        "admin_role_revoke",
+        "inspection_approve",
+        "inspection_reject",
+        "inspection_grade_mismatch",
+        "order_cancel",
+        "order_refund",
+        "settlement_process",
+        "settlement_fail",
+        "announcement_publish",
+        "announcement_unpublish",
+        "banner_create",
+        "banner_update",
+        "banner_delete",
+        "event_create",
+        "event_update",
+        "event_delete",
+        "faq_create",
+        "faq_update",
+        "faq_delete",
+        "ticket_assign",
+        "ticket_resolve",
+        "coupon_create",
+        "coupon_issue",
+        "coupon_redeem",
+        "config_update",
+        "admin_login",
+        "admin_logout"
+      ],
+      "columns": ["admin_action_logs.action"]
+    },
+    "push_status": {
+      "values": ["sent", "delivered", "failed", "bounced"],
+      "columns": ["push_notification_logs.status"],
+      "defaults": {
+        "push_notification_logs.status": "sent"
+      }
+    },
+    "penalty_type": {
+      "values": ["warning", "score_deduction", "listing_hold", "temporary_suspend", "permanent_ban"],
+      "columns": ["user_penalties.type"]
+    },
+    "penalty_status": {
+      "values": ["active", "expired", "revoked"],
+      "columns": ["user_penalties.status"],
+      "defaults": {
+        "user_penalties.status": "active"
+      }
+    },
+    "banner_placement": {
+      "values": ["home_top", "home_mid", "search_top", "notifications_top"],
+      "columns": ["banners.placement"]
+    },
+    "banner_status": {
+      "values": ["draft", "scheduled", "live", "expired", "archived"],
+      "columns": ["banners.status"],
+      "defaults": {
+        "banners.status": "draft"
+      }
+    },
+    "campaign_type": {
+      "values": ["promotion", "coupon", "raffle", "seasonal", "announcement_link"],
+      "columns": ["event_campaigns.type"]
+    },
+    "campaign_status": {
+      "values": ["draft", "scheduled", "live", "ended", "archived"],
+      "columns": ["event_campaigns.status"],
+      "defaults": {
+        "event_campaigns.status": "draft"
+      }
+    },
+    "coupon_discount_type": {
+      "values": ["fixed_amount", "percent"],
+      "columns": ["coupons.discount_type"]
+    },
+    "coupon_status": {
+      "values": ["draft", "active", "paused", "expired", "archived"],
+      "columns": ["coupons.status"],
+      "defaults": {
+        "coupons.status": "draft"
+      }
+    },
+    "coupon_issuance_status": {
+      "values": ["issued", "reserved", "used", "expired", "cancelled"],
+      "columns": ["coupon_issuances.status"],
+      "defaults": {
+        "coupon_issuances.status": "issued"
+      }
+    }
+  }
+}

@@ -1,0 +1,3 @@
+spring:
+  application:
+    name: used30-backend

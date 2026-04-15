@@ -9,7 +9,8 @@ export const mockOrders: Order[] = [
   {
     id: 'o1', productId: 'p1', product: p('p1'), buyerId: 'u3', buyerNickname: '빈티지헌터',
     status: 'confirmed',
-    payment: { method: 'card', amount: 180000, paidAt: '2026-04-03T10:00:00Z' },
+    payment: { method: 'card', amount: 171000, paidAt: '2026-04-03T10:00:00Z' },
+    appliedCoupon: { couponId: 'c1', code: 'SPRING2026', name: '봄맞이 5% 할인', discountAmount: 9000 },
     shipping: { carrier: 'CJ대한통운', trackingNo: '576123456789', currentStatus: '배송완료', estimatedAt: '2026-04-07T00:00:00Z' },
     inspection: ins('ins4'),
     createdAt: '2026-04-03T10:00:00Z', deliveredAt: '2026-04-07T14:00:00Z',
@@ -73,7 +74,8 @@ export const mockOrders: Order[] = [
   {
     id: 'o10', productId: 'p10', product: p('p10'), buyerId: 'u8', buyerNickname: '블루스마니아',
     status: 'return_requested',
-    payment: { method: 'card', amount: 110000, paidAt: '2026-04-01T15:00:00Z' },
+    payment: { method: 'card', amount: 105000, paidAt: '2026-04-01T15:00:00Z' },
+    appliedCoupon: { couponId: 'c4', code: 'GRADE5000', name: '등급차이 보상 5,000원', discountAmount: 5000 },
     shipping: { carrier: 'CJ대한통운', trackingNo: '321654987321', currentStatus: '배송완료' },
     returnRequest: {
       id: 'r1', orderId: 'o10', reason: 'grade_mismatch',

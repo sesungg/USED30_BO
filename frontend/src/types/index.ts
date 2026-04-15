@@ -86,6 +86,13 @@ export interface Inspection {
   sellerNickname: string;
 }
 
+export interface OrderAppliedCoupon {
+  couponId: string;
+  code: string;
+  name: string;
+  discountAmount: number;
+}
+
 export interface Order {
   id: string;
   productId: string;
@@ -98,6 +105,7 @@ export interface Order {
     amount: number;
     paidAt: string;
   };
+  appliedCoupon?: OrderAppliedCoupon;
   shipping?: {
     carrier: string;
     trackingNo: string;
