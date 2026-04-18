@@ -14,15 +14,20 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      const ok = login(email, password);
-      if (ok) {
-        navigate('/');
-      } else {
-        setError('이메일 또는 비밀번호가 올바르지 않습니다.');
-      }
-      setLoading(false);
-    }, 400);
+    void login(email, password)
+      .then(ok => {
+        if (ok) {
+          navigate('/');
+        } else {
+          setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+        }
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : '로그인 중 오류가 발생했습니다.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }
 
   return (

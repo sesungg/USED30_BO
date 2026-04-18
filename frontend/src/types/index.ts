@@ -30,7 +30,7 @@ export type OrderStatus =
 
 export type InspectionResult = 'pending' | 'approved' | 'grade_mismatch' | 'rejected';
 
-export type SettlementStatus = 'pending' | 'completed';
+export type SettlementStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
 export type UserAccountStatus = 'active' | 'suspended';
 
@@ -132,7 +132,7 @@ export interface Settlement {
   netAmount: number;
   status: SettlementStatus;
   settledAt?: string;
-  trigger: 'confirm' | 'auto' | 'manual';
+  trigger: 'manual_confirm' | 'auto_3day' | 'confirm' | 'auto' | 'manual';
   createdAt: string;
 }
 

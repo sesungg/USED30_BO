@@ -1,34 +1,26 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import type { AdminUser } from '../types';
-import { mockLogin } from '../data/mockAdminUsers';
+import { clearSession, login as loginRequest, readSession, type SessionUser } from '../lib/api';
 
 interface AuthContextValue {
-  user: AdminUser | null;
-  login: (email: string, password: string) => boolean;
+  user: SessionUser | null;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AdminUser | null>(() => {
-    const stored = sessionStorage.getItem('bo_user');
-    return stored ? JSON.parse(stored) : null;
-  });
+  const [user, setUser] = useState<SessionUser | null>(() => readSession()?.user ?? null);
 
-  function login(email: string, password: string): boolean {
-    const found = mockLogin(email, password);
-    if (found) {
-      setUser(found);
-      sessionStorage.setItem('bo_user', JSON.stringify(found));
-      return true;
-    }
-    return false;
+  async function login(email: string, password: string): Promise<boolean> {
+    const session = await loginRequest(email, password);
+    setUser(session.user);
+    return true;
   }
 
   function logout() {
     setUser(null);
-    sessionStorage.removeItem('bo_user');
+    clearSession();
   }
 
   return (

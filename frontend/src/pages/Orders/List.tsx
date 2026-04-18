@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockOrders } from '../../data/mockOrders';
-import { StatusBadge } from '../../components/common/StatusBadge';
 import { Pagination } from '../../components/common/Pagination';
+import { StatusBadge } from '../../components/common/StatusBadge';
+import { fetchOrders, type OrderSummary } from '../../lib/api';
+import { formatDate, toDateTimeEndParam, toDateTimeParam } from '../../lib/format';
 import type { OrderStatus } from '../../types';
 
 const PAGE_SIZE = 10;
@@ -22,42 +23,55 @@ const STATUS_OPTIONS: { value: OrderStatus | 'all'; label: string }[] = [
   { value: 'cancelled', label: '취소' },
 ];
 
-const PAYMENT_METHODS = [
-  { value: 'all', label: '전체' },
-  { value: 'card', label: '카드' },
-  { value: 'balance', label: '잔액' },
-  { value: 'transfer', label: '계좌이체' },
-] as const;
-
-type PaymentMethod = 'all' | 'card' | 'balance' | 'transfer';
-
 export default function OrderListPage() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<OrderStatus | 'all'>('all');
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('all');
   const [page, setPage] = useState(1);
+  const [items, setItems] = useState<OrderSummary[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const filtered = useMemo(() => {
-    return mockOrders.filter(o => {
-      if (status !== 'all' && o.status !== status) return false;
-      if (paymentMethod !== 'all' && o.payment.method !== paymentMethod) return false;
-      if (search && !o.buyerNickname.toLowerCase().includes(search.toLowerCase()) &&
-          !o.product.artistName.toLowerCase().includes(search.toLowerCase())) return false;
-      if (dateFrom && o.createdAt < dateFrom) return false;
-      if (dateTo && o.createdAt > dateTo + 'T23:59:59Z') return false;
-      return true;
-    });
-  }, [status, paymentMethod, search, dateFrom, dateTo]);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError('');
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    void fetchOrders({
+      page,
+      size: PAGE_SIZE,
+      status,
+      search,
+      startDate: toDateTimeParam(dateFrom),
+      endDate: toDateTimeEndParam(dateTo),
+    })
+      .then(response => {
+        if (cancelled) {
+          return;
+        }
+        setItems(response.content);
+        setTotalPages(Math.max(response.totalPages, 1));
+        setTotalElements(response.totalElements);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : '주문 목록을 불러오지 못했습니다.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
 
-  const hasFilters = search || dateFrom || dateTo || status !== 'all' || paymentMethod !== 'all';
-
-  const PAYMENT_LABEL: Record<string, string> = { card: '카드', balance: '잔액', transfer: '계좌이체' };
+    return () => {
+      cancelled = true;
+    };
+  }, [page, status, search, dateFrom, dateTo]);
 
   return (
     <div>
@@ -65,61 +79,37 @@ export default function OrderListPage() {
         <h5 className="fw-bold mb-0">주문 관리</h5>
       </div>
 
-      {/* Filters */}
       <div className="card border-0 shadow-sm mb-3">
         <div className="card-body py-3">
-          <div className="row g-2 align-items-center mb-2">
+          <div className="row g-2 align-items-center">
             <div className="col-md-3">
-              <select className="form-select form-select-sm" value={status}
-                onChange={e => { setStatus(e.target.value as OrderStatus | 'all'); setPage(1); }}>
-                {STATUS_OPTIONS.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
+              <select className="form-select form-select-sm" value={status} onChange={event => { setStatus(event.target.value as OrderStatus | 'all'); setPage(1); }}>
+                {STATUS_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </div>
             <div className="col-md-3">
-              <input className="form-control form-control-sm" placeholder="구매자 / 아티스트 검색"
-                value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+              <input className="form-control form-control-sm" placeholder="구매자 / 아티스트 검색" value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} />
             </div>
             <div className="col-auto">
-              <input type="date" className="form-control form-control-sm" value={dateFrom}
-                onChange={e => { setDateFrom(e.target.value); setPage(1); }} />
+              <input type="date" className="form-control form-control-sm" value={dateFrom} onChange={event => { setDateFrom(event.target.value); setPage(1); }} />
             </div>
             <div className="col-auto text-muted small">~</div>
             <div className="col-auto">
-              <input type="date" className="form-control form-control-sm" value={dateTo}
-                onChange={e => { setDateTo(e.target.value); setPage(1); }} />
+              <input type="date" className="form-control form-control-sm" value={dateTo} onChange={event => { setDateTo(event.target.value); setPage(1); }} />
             </div>
-            {hasFilters && (
+            {(search || status !== 'all' || dateFrom || dateTo) && (
               <div className="col-auto">
-                <button className="btn btn-sm btn-outline-secondary"
-                  onClick={() => { setSearch(''); setDateFrom(''); setDateTo(''); setStatus('all'); setPaymentMethod('all'); setPage(1); }}>
+                <button className="btn btn-sm btn-outline-secondary" onClick={() => { setStatus('all'); setSearch(''); setDateFrom(''); setDateTo(''); setPage(1); }}>
                   초기화
                 </button>
               </div>
             )}
           </div>
-          {/* Payment Method Radio */}
-          <div className="d-flex align-items-center gap-3 flex-wrap">
-            <span className="text-muted small fw-semibold">결제 수단:</span>
-            {PAYMENT_METHODS.map(m => (
-              <div key={m.value} className="form-check form-check-inline mb-0">
-                <input
-                  className="form-check-input"
-                  type="radio"
-                  name="paymentMethod"
-                  id={`pm-${m.value}`}
-                  checked={paymentMethod === m.value}
-                  onChange={() => { setPaymentMethod(m.value); setPage(1); }}
-                />
-                <label className="form-check-label small" htmlFor={`pm-${m.value}`}>{m.label}</label>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
-      {/* Table */}
+      {error && <div className="alert alert-danger">{error}</div>}
+
       <div className="card border-0 shadow-sm">
         <div className="card-body p-0">
           <table className="table table-hover mb-0">
@@ -128,36 +118,36 @@ export default function OrderListPage() {
                 <th className="ps-3">주문 ID</th>
                 <th>아티스트 / 앨범</th>
                 <th>구매자</th>
-                <th>결제 금액</th>
-                <th>결제 수단</th>
+                <th>상품 ID</th>
                 <th>상태</th>
                 <th>주문일</th>
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 && (
-                <tr><td colSpan={7} className="text-center text-muted py-4">주문이 없습니다.</td></tr>
+              {loading && (
+                <tr><td colSpan={6} className="text-center text-muted py-4">불러오는 중입니다.</td></tr>
               )}
-              {paged.map(o => (
-                <tr key={o.id} style={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/orders/${o.id}`)}>
-                  <td className="ps-3 small text-muted">#{o.id}</td>
-                  <td>
-                    <div className="fw-medium small">{o.product.artistName}</div>
-                    <div className="text-muted" style={{ fontSize: 12 }}>{o.product.albumName}</div>
+              {!loading && items.length === 0 && (
+                <tr><td colSpan={6} className="text-center text-muted py-4">주문이 없습니다.</td></tr>
+              )}
+              {items.map(item => (
+                <tr key={item.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/orders/${item.id}`)}>
+                  <td className="ps-3 small text-muted">#{item.id}</td>
+                  <td className="small">
+                    <div className="fw-medium">{item.artistName ?? '—'}</div>
+                    <div className="text-muted">{item.albumName ?? '—'}</div>
                   </td>
-                  <td className="small">{o.buyerNickname}</td>
-                  <td className="small fw-medium">₩{o.payment.amount.toLocaleString()}</td>
-                  <td className="small text-muted">{PAYMENT_LABEL[o.payment.method] ?? o.payment.method}</td>
-                  <td><StatusBadge status={o.status} /></td>
-                  <td className="small text-muted">{o.createdAt.slice(0, 10)}</td>
+                  <td className="small">{item.buyerNickname ?? '—'}</td>
+                  <td className="small text-muted">{item.productId ?? '—'}</td>
+                  <td><StatusBadge status={item.status} /></td>
+                  <td className="small text-muted">{formatDate(item.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         <div className="card-footer bg-white d-flex align-items-center justify-content-between">
-          <small className="text-muted">총 {filtered.length}건</small>
+          <small className="text-muted">총 {totalElements}건</small>
           <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         </div>
       </div>

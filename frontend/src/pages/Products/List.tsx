@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockProducts } from '../../data/mockProducts';
-import { StatusBadge } from '../../components/common/StatusBadge';
-import { GradeTag } from '../../components/common/GradeTag';
 import { Pagination } from '../../components/common/Pagination';
-import type { ProductStatus, MediaGrade, Genre } from '../../types';
+import { StatusBadge } from '../../components/common/StatusBadge';
+import { fetchProducts, type ProductSummary } from '../../lib/api';
+import { formatDate, formatPrice } from '../../lib/format';
+import type { ProductStatus } from '../../types';
 
 const PAGE_SIZE = 10;
 
@@ -16,51 +16,49 @@ const STATUS_OPTIONS: { value: ProductStatus | 'all'; label: string }[] = [
   { value: 'returning', label: '반송중' },
   { value: 'cancelled', label: '취소' },
   { value: 'disposed', label: '폐기' },
+  { value: 'draft', label: '임시저장' },
 ];
-
-const GRADE_OPTIONS: { value: MediaGrade | 'all'; label: string }[] = [
-  { value: 'all', label: '전체 등급' },
-  { value: 'M', label: 'M' },
-  { value: 'NM', label: 'NM' },
-  { value: 'VG+', label: 'VG+' },
-  { value: 'VG', label: 'VG' },
-  { value: 'G+', label: 'G+' },
-  { value: 'G', label: 'G' },
-  { value: 'F', label: 'F' },
-  { value: 'P', label: 'P' },
-];
-
-const ALL_GENRES: Genre[] = ['JAZZ', 'R&B', 'SOUL', 'ROCK', 'CLASSICAL', 'HIP-HOP', 'FUNK', 'BLUES', 'POP', 'DISCO'];
 
 export default function ProductListPage() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<ProductStatus | 'all'>('all');
-  const [gradeFilter, setGradeFilter] = useState<MediaGrade | 'all'>('all');
-  const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [items, setItems] = useState<ProductSummary[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  function toggleGenre(genre: Genre) {
-    setSelectedGenres(prev =>
-      prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]
-    );
-    setPage(1);
-  }
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError('');
 
-  const filtered = useMemo(() => mockProducts.filter(p => {
-    if (status !== 'all' && p.status !== status) return false;
-    if (gradeFilter !== 'all' && p.mediaGrade !== gradeFilter) return false;
-    if (selectedGenres.length > 0 && !p.genre.some(g => selectedGenres.includes(g as Genre))) return false;
-    if (search && !p.artistName.toLowerCase().includes(search.toLowerCase()) &&
-        !p.albumName.toLowerCase().includes(search.toLowerCase()) &&
-        !p.sellerNickname.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  }), [status, gradeFilter, selectedGenres, search]);
+    void fetchProducts({ page, size: PAGE_SIZE, status, search })
+      .then(response => {
+        if (cancelled) {
+          return;
+        }
+        setItems(response.content);
+        setTotalPages(Math.max(response.totalPages, 1));
+        setTotalElements(response.totalElements);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : '상품 목록을 불러오지 못했습니다.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  const hasFilters = search || status !== 'all' || gradeFilter !== 'all' || selectedGenres.length > 0;
+    return () => {
+      cancelled = true;
+    };
+  }, [page, search, status]);
 
   return (
     <div>
@@ -70,50 +68,32 @@ export default function ProductListPage() {
 
       <div className="card border-0 shadow-sm mb-3">
         <div className="card-body py-3">
-          <div className="row g-2 align-items-center mb-2">
-            <div className="col-md-2">
-              <select className="form-select form-select-sm" value={status}
-                onChange={e => { setStatus(e.target.value as ProductStatus | 'all'); setPage(1); }}>
-                {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <div className="col-md-2">
-              <select className="form-select form-select-sm" value={gradeFilter}
-                onChange={e => { setGradeFilter(e.target.value as MediaGrade | 'all'); setPage(1); }}>
-                {GRADE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          <div className="row g-2 align-items-center">
+            <div className="col-md-3">
+              <select className="form-select form-select-sm" value={status} onChange={event => { setStatus(event.target.value as ProductStatus | 'all'); setPage(1); }}>
+                {STATUS_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </div>
             <div className="col-md-4">
-              <input className="form-control form-control-sm" placeholder="아티스트 / 앨범 / 판매자 검색"
-                value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+              <input
+                className="form-control form-control-sm"
+                placeholder="아티스트 / 앨범 검색"
+                value={search}
+                onChange={event => { setSearch(event.target.value); setPage(1); }}
+              />
             </div>
-            {hasFilters && (
+            {(search || status !== 'all') && (
               <div className="col-auto">
-                <button className="btn btn-sm btn-outline-secondary"
-                  onClick={() => { setSearch(''); setStatus('all'); setGradeFilter('all'); setSelectedGenres([]); setPage(1); }}>
+                <button className="btn btn-sm btn-outline-secondary" onClick={() => { setStatus('all'); setSearch(''); setPage(1); }}>
                   초기화
                 </button>
               </div>
             )}
           </div>
-          {/* Genre Checkboxes */}
-          <div className="d-flex align-items-center gap-2 flex-wrap">
-            <span className="text-muted small fw-semibold">장르:</span>
-            {ALL_GENRES.map(genre => (
-              <div key={genre} className="form-check form-check-inline mb-0">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id={`genre-${genre}`}
-                  checked={selectedGenres.includes(genre)}
-                  onChange={() => toggleGenre(genre)}
-                />
-                <label className="form-check-label small" htmlFor={`genre-${genre}`}>{genre}</label>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
+
+      {error && <div className="alert alert-danger">{error}</div>}
 
       <div className="card border-0 shadow-sm">
         <div className="card-body p-0">
@@ -122,39 +102,39 @@ export default function ProductListPage() {
               <tr>
                 <th className="ps-3">ID</th>
                 <th>아티스트 / 앨범</th>
-                <th>포맷</th>
-                <th>미디어 등급</th>
-                <th>가격</th>
-                <th>판매자</th>
+                <th>판매 희망가</th>
+                <th>최종가</th>
+                <th>판매자 ID</th>
                 <th>상태</th>
                 <th>등록일</th>
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 && (
-                <tr><td colSpan={8} className="text-center text-muted py-4">상품이 없습니다.</td></tr>
+              {loading && (
+                <tr><td colSpan={7} className="text-center text-muted py-4">불러오는 중입니다.</td></tr>
               )}
-              {paged.map(p => (
-                <tr key={p.id} style={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/products/${p.id}`)}>
-                  <td className="ps-3 small text-muted">#{p.id}</td>
-                  <td>
-                    <div className="fw-medium small">{p.artistName}</div>
-                    <div className="text-muted" style={{ fontSize: 12 }}>{p.albumName}</div>
+              {!loading && items.length === 0 && (
+                <tr><td colSpan={7} className="text-center text-muted py-4">상품이 없습니다.</td></tr>
+              )}
+              {items.map(item => (
+                <tr key={item.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/products/${item.id}`)}>
+                  <td className="ps-3 small text-muted">#{item.id}</td>
+                  <td className="small">
+                    <div className="fw-medium">{item.artistName}</div>
+                    <div className="text-muted">{item.albumName}</div>
                   </td>
-                  <td className="small">{p.format}</td>
-                  <td><GradeTag grade={p.mediaGrade} showLabel={false} /></td>
-                  <td className="small fw-medium">₩{p.price.toLocaleString()}</td>
-                  <td className="small text-muted">{p.sellerNickname}</td>
-                  <td><StatusBadge status={p.status} /></td>
-                  <td className="small text-muted">{p.createdAt.slice(0, 10)}</td>
+                  <td className="small fw-medium">{formatPrice(item.askingPrice)}</td>
+                  <td className="small text-muted">{formatPrice(item.finalPrice)}</td>
+                  <td className="small text-muted">{item.sellerId ?? '—'}</td>
+                  <td><StatusBadge status={item.status} /></td>
+                  <td className="small text-muted">{formatDate(item.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         <div className="card-footer bg-white d-flex align-items-center justify-content-between">
-          <small className="text-muted">총 {filtered.length}건</small>
+          <small className="text-muted">총 {totalElements}건</small>
           <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         </div>
       </div>

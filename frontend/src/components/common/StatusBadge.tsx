@@ -28,7 +28,9 @@ const STATUS_MAP: Record<string, { label: string; bg: string }> = {
   grade_mismatch:               { label: '등급차이',    bg: 'warning text-dark' },
   rejected:                     { label: '반려',        bg: 'danger' },
   // SettlementStatus
+  processing:                   { label: '처리중',      bg: 'info text-dark' },
   completed:                    { label: '정산완료',    bg: 'success' },
+  failed:                       { label: '실패',        bg: 'danger' },
   // UserAccountStatus
   active:                       { label: '활성',        bg: 'success' },
   suspended:                    { label: '정지',        bg: 'danger' },
